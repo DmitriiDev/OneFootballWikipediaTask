@@ -1,14 +1,43 @@
-# Wikipedia iOS
-The official Wikipedia iOS app.
+In my task I Used a native UI testing framework from Apple - "XCUITEST". It’s a black box tool with Apple supporting. I implemented test architecture with the ScreenObject Pattern (mobile analog of PageObject). this approach has both strengths and weaknesses.  
+## Strengths: 
+- it’s a black box. You can emulate exactly the same behavior of a user as it happens in the real life.  
+- You don’t need to have much knowledge for writing such tests. Any Testers who have a little knowledge of how to code can use it. 
+- Apple provides a recording tool. You can find a quick solution from the record of your interaction with the app.
 
-[![MIT license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/wikimedia/wikipedia-ios/develop/LICENSE.txt)
+## Weaknesses: 
+- Your tests don’t isolate.  Your environment depends on the internet connection, states of the previous test run, old data. That why you can’t trust the tests on 100%
+- tests are very slow. XCUITest Framework lives in a separate process and it should sync with the app after each interaction. It’s very time-consuming and the time for such interaction isn’t constant. It means that you don’t know the expected result - in the end, you have not reliable tests. 
+- you can’t stub the network layer and prepare the data for testing. 
 
-* License: MIT License
-* Source repo: https://github.com/wikimedia/wikipedia-ios
-* Planning (bugs & features): https://phabricator.wikimedia.org/project/view/782/
-* Team page: https://www.mediawiki.org/wiki/Wikimedia_Apps/Team/iOS
+I thought to use Earlgray for the UITesting of the Wikipedia iOS App. Unfortunately, I faced issues while I wrote the Framework. As EarlGray is a Whitebox testing tool you able to write tests in the Unit Test target. (Your tests will be like a unit tests but with UI) 
+It means that you should write many test doubles objects (DI, mock, Fake objects and etc) and it’s a very time-consuming process. I have a project which can show you all advantages of this approach. But I don’t speak that we should use just this approach. No, I think we should use both for a more efficient test process. 
 
-**Note: The latest main branch is set up to build with Xcode 12.**
+Here you can find a short FAQ about my framework.  
+
+
+## Feature.swift (Found in... WikipediaUITests > FrameworkUITests > Feature > Feature.swift)
+This file essentually handles the App state (including setup and teardown).
+This file is where you are required to explicitly add your screen objects (swift files) so that they can be
+loaded and referenced when writing your test functions.
+
+## App.swift (Found in... FrameworkUITests  > Helpers > App.swift) 
+This file is the singleton in charge of creating XCUIApplication instance and managing the global app state.
+This is created so the same application instance can be used across different pages of the app
+and the instance we are calling is the one that got launched.
+
+## WikipediaTestCases.swift (Found in... WikipediaUITests > WikipediaTestCases.swift)
+This file acts as a sort of parent class, where the files are able to access other methods. 
+You could actually get away with not having this and putting this capability elsewhere.
+
+The file also includes a method that allows you to check the 'selected' state of an element. Particularly useful
+when wanting to check if a button/switch is in the state you want it to be in.
+
+## BaseScreen.swift (Found in... WikipediaUITests > Screens > BaseScreen.swift)
+This is essentially the blueprint for what all the other screens/pages will be modelled on.
+It contains a component that will allow for a 'trait' to be defined for each screen/page which adds a
+pre-condition/check to ensure you're on the screen/page that you think you're on, i.e....
+## UITestsOneFootballTask.swift (Found in... WikipediaUITests > UITestsOneFootballTask > UITestsOneFootballTask.swift)
+Here collected 3 tests that check-in different user cases. All tests are independent from each other. 
 
 ## Building and Running
 
@@ -25,67 +54,3 @@ If you'd rather install the development prerequisites yourself without our scrip
 * [Carthage](https://github.com/Carthage/Carthage) - We check in prebuilt dependencies to simplify the initial build and run experience but you'll still need Carthage installed to allow Xcode to properly copy the frameworks into the built app. After you add, remove, or upgrade a dependency, you should run `scripts/carthage_update` to update the built dependencies.
 * [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) - We use this for linting
 
-## Contributing
-Covered in the [contributing document](CONTRIBUTING.md).
-
-## Development Guidelines
-These are general guidelines rather than hard rules.
-
-### Objective-C
-* [Apple's Coding Guidelines for Cocoa](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/CodingGuidelines/CodingGuidelines.html)
-### Swift
-* [swift.org API Design Guidelines](https://swift.org/documentation/api-design-guidelines/)
-
-### Formatting
-We use Xcode's default 4 space indentation and our `.clang-format` file with the pre-commit hook setup by `scripts/setup`. Currently, this does not enforce Swift formatting.
-
-### Process and code review norms
-Covered in the [process document](docs/process.md).
-
-### Testing
-The **Wikipedia** scheme is configured to execute the project's iOS unit tests, which can be run using the `Cmd+U` hotkey or the **Product->Test** menu bar action. Screenshot tests will fail unless you are running on one of the configurations defined by `configurations_to_test_on_pull` in `fastlane/Fastfile`.
-
-### Targets
-#### Wikipedia
-Points to production servers.
-#### Staging
-Points to the [Apps team's staging environment](https://mobileapps.wmflabs.org) for page content and production for everything else. Has additional debugging menus and is pushed to TestFlight as a separate app bundle.
-#### Local Page Content Service and Announcements
-Points to the [mobileapps](https://gerrit.wikimedia.org/r/q/project:mediawiki%252Fservices%252Fmobileapps) and [wikifeeds](https://gerrit.wikimedia.org/r/q/project:mediawiki%252Fservices%252Fwikifeeds) repos running locally.
-#### MediaWiki Beta Cluster
-Points to the [MediaWiki beta cluster](https://www.mediawiki.org/wiki/Beta_Cluster) for MediaWiki API calls and production for everything else.
-#### RTL
-Launches the app in an RTL locale using the -AppleLocale argument.
-#### Experimental
-For one off builds, can point to whatever is needed for the given experiment.
-#### User Testing
-For user testing. Has an alternate configuration so that it can be delivered ad hoc.
-#### Event Logging Dev Debug
-For testing the events that the app sends to [Event Logging](https://wikitech.wikimedia.org/wiki/Analytics/Systems/EventLogging). Points to the Event Logging staging environment.
-#### Beta Cluster tests
-Tests that run against the [MediaWiki beta cluster](https://www.mediawiki.org/wiki/Beta_Cluster), checking for upstream changes to MediaWiki that might break any assumptions we have.
-#### UITests
-Runs automated screenshot tests.
-#### WMF
-Bundles up the app logic shared between the main app and the extensions (widgets, notifications).
-#### Updating localizations
-Covered in the [localization document](docs/localization.md).
-#### Adding new Wikipedia languages or updating language configurations
-Covered in the [languages document](docs/languages.md).
-#### {{name}}Widget, {{name}}Notification, {{name}}Stickers
-Extensions for widgets, notifications, and stickers.
-#### codemirror-config
-Generates the [CodeMirror](https://codemirror.net) configuration files. CodeMirror is used in the section editor.
-
-### Continuous integration
-Covered in the [ci document](docs/ci.md).
-
-### Event logging
-Covered in the [event logging document](docs/event_logging.md).
-
-### Web development
-The article view and several other components of the app rely on web components. Instructions for working on these components is covered in the [web development document](docs/web_dev.md).
-
-### Contact us
-If you have any questions or comments, you can join the #wikimedia-mobile channel on the Freenode IRC server. We'll also gladly accept any [bug reports](https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?title=[BUG]&projects=wikipedia-ios-app-product-backlog,ios-app-bugs&description=%3D%3D%3D+How+many+times+were+you+able+to+reproduce+it?%0D%0A%0D%0A%3D%3D%3D+Steps+to+reproduce%0D%0A%23+%0D%0A%23+%0D%0A%23+%0D%0A%0D%0A%3D%3D%3D+Expected+results%0D%0A%0D%0A%3D%3D%3D+Actual+results%0D%0A%0D%0A%3D%3D%3D+Screenshots%0D%0A%0D%0A%3D%3D%3D+Environments+observed%0D%0A**App+version%3A+**+%0D%0A**OS+versions%3A**+%0D%0A**Device+model%3A**+%0D%0A**Device+language%3A**+%0D%0A%0D%0A%3D%3D%3D+Regression?+%0D%0A%0D%0A+Tag++task+with+%23Regression+%0A).
-# OneFootballWikipediaTask
